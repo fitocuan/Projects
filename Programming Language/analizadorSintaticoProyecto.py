@@ -18,9 +18,14 @@ incremento = []
 counter_sym = 0
 
 def p_program(p):
-	'''P : PROGRAM ID V S END PROGRAM sub'''
+	'''P : PROGRAM ID V S END PROGRAM endprog sub'''
 
-
+def p_endprog(p):
+	'''endprog 	: empty
+	'''
+	global cont_saltos
+	quad.append({'1' : 'fin', '2' : '', '3' : '', '4' : ''})
+	cont_saltos+=1
 
 def p_V(p):
 	'''V 	: data_type ID V
@@ -239,13 +244,20 @@ def p_s(p):
 			| assmat2 S
 			| READ read_r S
 			| PRINT print_r S
-			| CALL ID LPARENT RPARENT S
+			| call S
 			| DO LPARENT loop2 loop3 COMMA EL loop1 loop6 RPARENT S loop7 enddo1 S
 			| DO loop4 S END DO loop5 S
 			| IF if4 else else2 END IF if3 S
 			| EXIT exit S
 			| empty
 	'''
+
+def p_call(p):
+	'''call : CALL ID'''
+	global cont_saltos
+	quad.append({'1' : 'GotoP', '2' : str(p[2]), '3' : '', '4' : ''})
+	cont_saltos+=1
+
 
 def p_assmat1(p):
 	'''assmat1 : ID LPARENT EA RPARENT ASSIGN EA
@@ -517,10 +529,27 @@ def p_print_r(p):
 	quad.append({'1' : "print", '2' : ' ', '3' : num, '4' : ' '})
 	cont_saltos+=1
 
+subrutinas = []
+
 def p_sub(p):
-	''' sub	: SUBROUTINE ID S END SUBROUTINE sub
+	''' sub	:  sub3 S END SUBROUTINE sub2 sub
 			| empty
 	'''
+		
+		
+def p_sub2(p):
+	''' sub2	: empty
+	'''
+	global cont_saltos
+	quad.append({'1' : "return", '2' : ' ', '3' : '', '4' : ' '})
+	cont_saltos+=1
+	
+def p_sub3(p):
+	''' sub3	: SUBROUTINE ID
+	'''
+	global cont_saltos
+	subrutinas.append({'id': str(p[2]), 'idx' : cont_saltos})
+
 
 def p_empty(p):
 	'''empty :'''
@@ -560,7 +589,8 @@ def findInSystemTable(var,i,i2):
 	for item in (sym_table):
 		if item['id'] == var:
 
-			if i != 0 and i2 != 0:
+			if i != 0 and i2 != 0:				
+				
 				return item['count']+(int(i[:-1])-1)*item['base']+int(i2[:-1]) -1 
 			elif i != 0:
 				
@@ -632,12 +662,51 @@ print('\nOUTPUT DE PROGRAMA')
 
 
 cp = 0
+print(subrutinas)
+ejec = []
 
-
-
-while cp != len(quad):
-
+while True:
+	
+	
 	item = quad[cp]
+	
+	if item['1'] == 'GoToF':
+		
+		if str(type(item['2'])) == '<type \'int\'>':
+			x,y = findNum(item['2'])
+			num = int(sym_table[x]['value'][y])
+		else:	
+			if item['2'][0] == 't':
+				
+				num = avail[int(item['2'][1:])]
+			else:
+				num = int(item['2'][:-1])
+						
+		if num == 0:
+			cp = int(item['3'])
+		else:
+			cp += 1
+	elif item['1'] == 'GoTo':
+		cp = int(item['3'])
+		
+	elif item['1'] == 'GotoP':
+	
+		ejec.append(cp+1)
+		for i in subrutinas:
+			if i['id'] == str(item['2']):
+				num = i['idx']
+		cp = num
+				
+	else:
+		cp += 1
+	
+	
+		
+	if item['1'] == 'return':
+		cp = ejec.pop()
+		
+	if item['1'] == 'fin':
+		break
 	if item['1'] == '=':
 
 		if str(type(item['3'])) == '<type \'int\'>':
@@ -923,32 +992,13 @@ while cp != len(quad):
 			
 		
 	
-	if item['1'] == 'GoToF':
-		
-		if str(type(item['2'])) == '<type \'int\'>':
-			x,y = findNum(item['2'])
-			num = int(sym_table[x]['value'][y])
-		else:	
-			if item['2'][0] == 't':
-				
-				num = avail[int(item['2'][1:])]
-			else:
-				num = int(item['2'][:-1])
-						
-		if num == 0:
-			cp = int(item['3'])
-		else:
-			cp += 1
-	elif item['1'] == 'GoTo':
-		cp = int(item['3'])
-				
-	else:
-		cp += 1
+	
 	
 	
 	
 printSymTable()
 	
+
 	
 	
 
